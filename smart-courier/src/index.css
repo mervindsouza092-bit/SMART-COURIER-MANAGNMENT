@@ -1,0 +1,8 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+body{@apply bg-[#05070f] text-white antialiased;background-image:linear-gradient(rgba(56,189,248,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.06) 1px,transparent 1px);background-size:44px 44px}
+.glass{@apply bg-white/5 backdrop-blur-xl border border-cyan-400/20 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,.08)]}
+.btn{@apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold tracking-wide bg-gradient-to-r from-blue-500 to-cyan-400 text-black transition hover:shadow-[0_0_25px_rgba(34,211,238,.6)] hover:-translate-y-0.5 active:scale-95}
+.btn2{@apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold tracking-wide border border-cyan-400/40 text-cyan-200 transition hover:bg-cyan-400/10 hover:-translate-y-0.5 active:scale-95}
+.inp{@apply w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 outline-none transition hover:border-cyan-400/40 focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(34,211,238,.4)]}
+.gt{@apply bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400 bg-clip-text text-transparent}
+.leaflet-container{background:#dfe7ef;border-radius:14px;font:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#fff;color:#111827}

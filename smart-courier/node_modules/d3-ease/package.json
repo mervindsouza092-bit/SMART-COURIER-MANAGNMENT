@@ -1,0 +1,54 @@
+{
+  "name": "d3-ease",
+  "version": "3.0.2",
+  "description": "Easing functions for smooth animation.",
+  "homepage": "https://d3js.org/d3-ease/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/d3/d3-ease.git"
+  },
+  "keywords": [
+    "d3",
+    "d3-module",
+    "ease",
+    "easing",
+    "animation",
+    "transition"
+  ],
+  "license": "BSD-3-Clause",
+  "author": {
+    "name": "Mike Bostock",
+    "url": "http://bost.ocks.org/mike"
+  },
+  "type": "module",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.mjs"
+  ],
+  "module": "dist/d3-ease.mjs",
+  "main": "dist/d3-ease.mjs",
+  "jsdelivr": "dist/d3-ease.min.js",
+  "unpkg": "dist/d3-ease.min.js",
+  "exports": {
+    "umd": "./dist/d3-ease.min.js",
+    "default": "./dist/d3-ease.mjs"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.2",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "rollup": "^4.67.4",
+    "vitest": "^5.1.0"
+  },
+  "scripts": {
+    "test": "vitest",
+    "lint": "eslint",
+    "prepublishOnly": "rm -rf dist && rollup -c"
+  },
+  "engines": {
+    "node": ">=12"
+  }
+}
