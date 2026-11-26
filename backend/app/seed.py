@@ -26,7 +26,7 @@ def seed(db, hash_pw):
     for i, (p, d, pk, w, st, c, u) in enumerate(rows):
         km = road_km(P[p], P[d])
         db.add(Shipment(tracking_id=f"SC-2026-9482{i+1}", customer_id=custs[u].id, courier_id=cs[c].id if c is not None else None, pickup=p, destination=d, package=pk, weight=w,
-                        price=round(80 + w * 25 + km * 8 + 49 + (80 + w * 25 + km * 8 + 49) * .18), status=st, plat=P[p][0], plng=P[p][1], dlat=P[d][0], dlng=P[d][1], distance_km=km, otp="4821", payment_status="Paid", payment_method="UPI"))
+                        price=round(80 + w * 25 + km * 8 + 49 + (80 + w * 25 + km * 8 + 49) * .18), status=st, plat=P[p][0], plng=P[p][1], dlat=P[d][0], dlng=P[d][1], distance_km=km, otp="4821", payment_status="Paid", payment_method="UPI", priority=["Normal", "Highest", "High", "Low", "Normal"][i]))
     import random
     from datetime import datetime, timedelta, timezone
     random.seed(7); names = list(P)  # 80 historical shipments so the charts have real data
@@ -34,5 +34,5 @@ def seed(db, hash_pw):
         a, b = random.sample(names, 2); km = road_km(P[a], P[b]); w = random.randint(1, 5)
         db.add(Shipment(tracking_id=f"SC-2026-8{k:04d}", customer_id=random.choice(custs).id, courier_id=cs[random.randint(0, 3)].id, pickup=a, destination=b, package="Parcel", weight=w,
                         price=round((80 + w * 25 + km * 8 + 49) * 1.18), status=random.choice(["Delivered"] * 8 + ["Cancelled"]), plat=P[a][0], plng=P[a][1], dlat=P[b][0], dlng=P[b][1],
-                        distance_km=km, otp="1234", payment_status="Paid", payment_method="UPI", rating=random.randint(3, 5), created_at=datetime.now(timezone.utc) - timedelta(days=random.choices(range(30), weights=[1.8 if (datetime.now() - timedelta(days=d)).weekday() >= 5 else 1 for d in range(30)])[0], hours=random.randint(0, 12))))
+                        distance_km=km, otp="1234", payment_status="Paid", payment_method="UPI", priority=random.choice(["Normal"] * 5 + ["High", "Highest", "Low", "Lowest"]), rating=random.randint(3, 5), created_at=datetime.now(timezone.utc) - timedelta(days=random.choices(range(30), weights=[1.8 if (datetime.now() - timedelta(days=d)).weekday() >= 5 else 1 for d in range(30)])[0], hours=random.randint(0, 12))))
     db.commit()

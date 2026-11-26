@@ -1,4 +1,4 @@
-import {useEffect} from 'react'
+import {useEffect,useRef} from 'react'
 import {MapContainer,TileLayer,LayersControl,Marker,Polyline,Popup,useMap} from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -13,6 +13,18 @@ export async function geocode(q){
   try{const d=await(await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=in&q=${encodeURIComponent(q)}`)).json();return d[0]?{lat:+d[0].lat,lng:+d[0].lon,name:d[0].display_name}:null}catch{return null}
 }
 function Fit({pts}){const m=useMap();useEffect(()=>{if(pts.length>1)m.fitBounds(pts,{padding:[40,40]});else if(pts.length)m.setView(pts[0],14)},[pts.length]);return null}
+// A marker that glides to each new position instead of jumping
+function MovingMarker({pos,icon,label}){
+  const ref=useRef(null),from=useRef(pos),init=useRef(pos)
+  useEffect(()=>{
+    const m=ref.current;if(!m)return
+    const a=from.current,b=pos,t0=performance.now();let id
+    const step=t=>{const k=Math.min(1,(t-t0)/900);m.setLatLng([a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]);if(k<1)id=requestAnimationFrame(step);else from.current=b}
+    id=requestAnimationFrame(step)
+    return()=>{cancelAnimationFrame(id);const ll=m.getLatLng();from.current=[ll.lat,ll.lng]}
+  },[pos[0],pos[1]])
+  return <Marker ref={ref} position={init.current} icon={icon}><Popup>{label}</Popup></Marker>
+}
 export default function LiveMap({markers=[],line=[],h=380}){
   const pts=markers.map(m=>m.pos)
   return <div className="glass p-1 overflow-hidden" style={{height:h}}><MapContainer center={pts[0]||[19.2,72.85]} zoom={11} style={{height:'100%',width:'100%'}} scrollWheelZoom>
@@ -21,6 +33,6 @@ export default function LiveMap({markers=[],line=[],h=380}){
       <LayersControl.BaseLayer name="Satellite"><TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" maxZoom={19}/></LayersControl.BaseLayer>
     </LayersControl>
     {line.length>1&&<Polyline positions={line} pathOptions={{color:'#2563eb',weight:5,opacity:.9}}/>}
-    {markers.map((m,i)=><Marker key={i} position={m.pos} icon={m.icon}><Popup>{m.label}</Popup></Marker>)}
+    {markers.map((m,i)=>m.smooth?<MovingMarker key={'s'+i} pos={m.pos} icon={m.icon} label={m.label}/>:<Marker key={i} position={m.pos} icon={m.icon}><Popup>{m.label}</Popup></Marker>)}
     <Fit pts={pts}/></MapContainer></div>
 }

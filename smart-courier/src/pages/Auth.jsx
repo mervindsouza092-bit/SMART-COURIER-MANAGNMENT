@@ -3,6 +3,7 @@ import {motion,useAnimation} from 'framer-motion'
 import {Link,useNavigate} from 'react-router-dom'
 import {Loader2,Check,User,ShieldCheck,Truck,Eye,EyeOff} from 'lucide-react'
 import {useApp} from '../ui'
+import {Prefs} from '../Prefs'
 import {api,setToken} from '../api'
 const roles=[['user','USER','Book and track deliveries.',User],['admin','ADMIN','Manage the complete system.',ShieldCheck],['courier','COURIER','Manage assigned deliveries.',Truck]]
 const titles={login:['WELCOME BACK','Access your smart delivery network.'],register:['CREATE YOUR SMART COURIER ACCOUNT','Join the intelligent delivery network.'],forgot:['RESET ACCESS','Enter your email address.']}
@@ -27,9 +28,10 @@ export default function Auth({mode}){
     }catch(x){setSt('idle');fail(x.message)}
   }
   return <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="fixed top-3 right-3 z-20"><Prefs compact/></div>
     <div className="hidden lg:grid place-items-center relative overflow-hidden">
-      {[...Array(14)].map((_,i)=><motion.i key={i} className="absolute w-1.5 h-1.5 rounded-full bg-cyan-300" style={{left:`${(i*37)%100}%`,top:`${(i*53)%100}%`}} animate={{y:[0,-40,0],opacity:[.2,1,.2]}} transition={{repeat:Infinity,duration:3+i%4,delay:i*.2}}/>)}
-      <Truck size={110} className="text-cyan-300 drop-shadow-[0_0_30px_#22d3ee]"/>
+      {[...Array(18)].map((_,i)=><motion.i key={i} className="absolute w-1.5 h-1.5 rounded-full bg-cyan-300" style={{left:`${(i*37)%100}%`,top:`${(i*53)%100}%`}} animate={{y:[0,-40,0],opacity:[.2,1,.2]}} transition={{repeat:Infinity,duration:3+i%4,delay:i*.2}}/>)}
+      <motion.div animate={{y:[0,-12,0]}} transition={{repeat:Infinity,duration:4}}><Truck size={110} className="text-cyan-300 drop-shadow-[0_0_30px_#22d3ee]"/></motion.div>
     </div>
     <div className="grid place-items-center p-5"><motion.form onSubmit={submit} initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} className="glass p-7 w-full max-w-md">
       <div className="text-2xl font-black gt">{titles[mode][0]}</div><p className="text-white/60 text-sm mb-5">{titles[mode][1]}</p>

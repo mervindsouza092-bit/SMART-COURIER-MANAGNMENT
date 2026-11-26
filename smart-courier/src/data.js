@@ -7,7 +7,7 @@ S(4,'Sneha Joshi','Ravi K.','Borivali','Dadar','Books',180,'Delivered','–','18
 S(5,'Vikram Rao','Anil D.','Mira Road','Powai','Food Box',150,'Pending','1 h 20 min','19 Nov'),
 S(6,'Meera Nair','Imran S.','Bhayandar','Colaba','Fragile',890,'Cancelled','–','17 Nov')]
 export const STAGES=['Order Created','Pickup Confirmed','Package Collected','In Transit','Out for Delivery','Delivered']
-export const stageOf={Pending:1,'Picked Up':2,'In Transit':3,'Out for Delivery':4,Delivered:5,Cancelled:0}
+export const stageOf={Pending:1,'Picked Up':2,'In Transit':3,'Out for Delivery':4,Delivered:5,Cancelled:0,Failed:4}
 export const couriers=[
 {id:'CR-101',name:'Ravi Kumar',phone:'98200 11111',vehicle:'EV Van',loc:'Virar',active:3,perf:96,status:'On Delivery'},
 {id:'CR-102',name:'Imran Shaikh',phone:'98200 22222',vehicle:'Bike',loc:'Vasai',active:2,perf:92,status:'On Delivery'},

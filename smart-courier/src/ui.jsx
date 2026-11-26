@@ -1,10 +1,10 @@
 import {createContext,useContext,useEffect,useState} from 'react'
 import {AnimatePresence,motion} from 'framer-motion'
 import {CheckCircle2,Sparkles,X,Send} from 'lucide-react'
-import {api} from './api'
+import {api,setToken,hasToken} from './api'
 export const Ctx=createContext()
 export const useApp=()=>useContext(Ctx)
-const tone={'In Transit':'cyan','Out for Delivery':'violet','Picked Up':'blue','Delivered':'green',Pending:'amber',Cancelled:'red',Online:'cyan',Available:'green','On Delivery':'violet',Offline:'gray',Paid:'green',Unpaid:'amber',COD:'blue'}
+const tone={'In Transit':'cyan','Out for Delivery':'violet','Picked Up':'blue','Delivered':'green',Pending:'amber',Cancelled:'red',Online:'cyan',Available:'green','On Delivery':'violet',Offline:'gray',Paid:'green',Unpaid:'amber',COD:'blue',Highest:'red',High:'amber',Normal:'blue',Low:'gray',Lowest:'gray',Open:'amber',Answered:'green',Closed:'gray',Failed:'red'}
 const tc={cyan:'bg-cyan-400/15 text-cyan-300',violet:'bg-violet-400/15 text-violet-300',blue:'bg-blue-400/15 text-blue-300',green:'bg-emerald-400/15 text-emerald-300',amber:'bg-amber-400/15 text-amber-300',red:'bg-red-400/15 text-red-300',gray:'bg-white/10 text-white/50'}
 export const Badge=({s})=><span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${tc[tone[s]]}`}><motion.i className="w-1.5 h-1.5 rounded-full bg-current" animate={{opacity:[1,.3,1]}} transition={{repeat:Infinity,duration:1.5}}/>{s}</span>
 export function Counter({to,prefix=''}){
@@ -12,7 +12,7 @@ export function Counter({to,prefix=''}){
   useEffect(()=>{let v=0;const id=setInterval(()=>{v+=to/40;if(v>=to){v=to;clearInterval(id)}setN(Math.round(v))},25);return()=>clearInterval(id)},[to])
   return <>{prefix}{n.toLocaleString('en-IN')}</>
 }
-export const Stat=({label,to,prefix,i=0})=><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*.08}} whileHover={{rotateX:6,rotateY:-6,scale:1.03}} style={{perspective:600}} className="glass p-4 hover:border-cyan-300/60 transition-colors"><div className="text-xs tracking-widest text-white/50">{label}</div><div className="text-2xl font-black gt mt-1"><Counter to={to} prefix={prefix}/></div></motion.div>
+export const Stat=({label,to,prefix,i=0})=><motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*.08}} whileHover={{rotateX:6,rotateY:-6,scale:1.03}} style={{perspective:600}} className="glass stat p-4"><div className="text-xs tracking-widest text-white/50">{label}</div><div className="text-2xl font-black gt mt-1"><Counter to={to} prefix={prefix}/></div></motion.div>
 function Orb(){
   const {user}=useApp(),[o,setO]=useState(false),[q,setQ]=useState(''),[m,setM]=useState([{b:1,t:'Hi, I’m Smart Assist. Pick an option or type a tracking ID.'}])
   const ask=async t=>{
@@ -33,9 +33,10 @@ function Orb(){
   </>
 }
 export function Provider({children}){
-  const [user,setUser]=useState(null),[ts,setT]=useState([])
+  const [user,setUser]=useState(null),[ts,setT]=useState([]),[ready,setReady]=useState(!hasToken())
+  useEffect(()=>{if(hasToken())api('/auth/me').then(setUser).catch(()=>setToken(null)).finally(()=>setReady(true))},[])
   const toast=m=>{const id=Math.random();setT(t=>[...t,{id,m}]);setTimeout(()=>setT(t=>t.filter(x=>x.id!==id)),3500)}
-  return <Ctx.Provider value={{user,setUser,toast}}>{children}
+  return <Ctx.Provider value={{user,setUser,toast}}>{ready?children:null}
     <div className="fixed top-4 right-4 z-[60] space-y-2"><AnimatePresence>{ts.map(t=><motion.div key={t.id} layout initial={{x:80,opacity:0}} animate={{x:0,opacity:1}} exit={{x:80,opacity:0}} className="glass px-4 py-3 flex gap-2 items-center bg-[#0a0f1f]/90 shadow-[0_0_20px_rgba(34,211,238,.3)]"><CheckCircle2 size={16} className="text-cyan-300"/>{t.m}</motion.div>)}</AnimatePresence></div>
     <Orb/></Ctx.Provider>
 }

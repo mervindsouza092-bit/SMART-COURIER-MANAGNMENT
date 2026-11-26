@@ -1,7 +1,11 @@
 import {useEffect,useState} from 'react'
 const BASE=import.meta.env.VITE_API||'http://localhost:8000/api'
 let token=null
-export const setToken=t=>{token=t}
+try{token=localStorage.getItem('sc_token')}catch{}
+export const setToken=t=>{token=t;try{t?localStorage.setItem('sc_token',t):localStorage.removeItem('sc_token')}catch{};if(!t)navigator.serviceWorker?.controller?.postMessage('clear')}
+export const hasToken=()=>!!token
+export const getToken=()=>token
+export const wsUrl=p=>BASE.replace(/^http/,'ws').replace(/\/api$/,'')+p
 export async function api(path,opt={}){
   let r
   try{r=await fetch(BASE+path,{method:opt.method||'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:opt.body?JSON.stringify(opt.body):undefined})}

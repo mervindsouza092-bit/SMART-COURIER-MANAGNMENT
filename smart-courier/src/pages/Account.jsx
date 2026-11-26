@@ -3,6 +3,7 @@ import {motion} from 'framer-motion'
 import {api} from '../api'
 import {useApp} from '../ui'
 import {Head} from './Dash'
+import {Prefs} from '../Prefs'
 const Sw=({on,set,label,sub})=><button onClick={()=>set(!on)} role="switch" aria-checked={on} className="flex items-center justify-between w-full py-3 border-t border-white/10 text-left"><span>{label}<span className="block text-xs text-white/50">{sub}</span></span><span className={`w-11 h-6 rounded-full p-0.5 flex transition ${on?'bg-cyan-400':'bg-white/15'}`}><motion.span layout className={`block w-5 h-5 rounded-full bg-white ${on?'ml-auto':''}`}/></span></button>
 export function Profile(){
   const {user,setUser,toast}=useApp(),[f,setF]=useState({name:user.name,phone:user.phone||''}),[edit,setEdit]=useState(false)
@@ -20,6 +21,7 @@ export function Settings(){
   const save=b=>api('/auth/me',{method:'PATCH',body:b}).then(u=>{setUser(u);toast('Preference saved')}).catch(x=>toast(x.message))
   const change=()=>api('/auth/change-password',{method:'POST',body:{current:pw.current,new:pw.next}}).then(()=>{toast('Password changed');setPw({current:'',next:''})}).catch(x=>toast(x.message))
   return <div className="max-w-xl mx-auto space-y-4"><Head t="SETTINGS" sub="PREFERENCES SAVED ON THIS DEVICE"/>
+    <div className="glass p-5"><div className="font-bold mb-3">Appearance and language</div><Prefs/><p className="text-xs text-white/40 mt-3">Hindi and Marathi translate the main screens. Some messages stay in English.</p></div>
     <div className="glass p-5"><div className="font-bold mb-2">Notifications</div>
       <Sw on={p.push} set={set('push')} label="In-app notifications" sub="Status changes and delivery updates"/>
       <Sw on={user.notify_email!==false} set={v=>save({notify_email:v})} label="Email alerts" sub="Receive updates by email"/>
