@@ -1,11 +1,13 @@
 import {useState} from 'react'
 import {Routes,Route,Navigate,Outlet,NavLink,useLocation,useNavigate} from 'react-router-dom'
-import {AnimatePresence,motion} from 'framer-motion'
-import {LayoutDashboard,MapPin,Users,LogOut,Menu,Plus,UserCog,Boxes,Brain,Package,UserCircle,Cog,CreditCard,BarChart3,History,Bell,PackageCheck,Trophy,Sparkles,IndianRupee,LifeBuoy,Tag,Home,FlaskConical,ShieldAlert,RotateCcw,Gauge,ScrollText,Wallet} from 'lucide-react'
+import {motion} from 'framer-motion'
+import {LayoutDashboard,MapPin,Users,LogOut,Menu,Plus,UserCog,Boxes,Brain,Package,UserCircle,Cog,CreditCard,BarChart3,History,Bell,PackageCheck,Trophy,Sparkles,IndianRupee,LifeBuoy,Tag,Home,FlaskConical,ShieldAlert,RotateCcw,Gauge,ScrollText,Wallet,BadgeCheck} from 'lucide-react'
 import {Provider,useApp} from './ui'
 import {setToken} from './api'
 import NotifBell from './Notifications'
 import {Prefs,OfflineBanner} from './Prefs'
+import {PayDialogs} from './PayPicker'
+import Kyc from './pages/Kyc'
 import Landing from './pages/Landing'
 import Auth from './pages/Auth'
 import {UserDash,AdminDash,Couriers} from './pages/Dash'
@@ -24,12 +26,13 @@ import Reset from './pages/Reset'
 import Loading from './Loading'
 import Tracking from './pages/Tracking'
 import Book from './pages/Book'
-const Fade=({children})=><motion.div initial={{opacity:0,scale:.98,filter:'blur(8px)'}} animate={{opacity:1,scale:1,filter:'blur(0px)'}} exit={{opacity:0,scale:1.02,filter:'blur(8px)'}} transition={{duration:.5}}>{children}</motion.div>
+// no exit animation on purpose: waiting for one could freeze navigation (for example right after logging out)
+const Fade=({children})=>{const {pathname}=useLocation();return <motion.div key={pathname} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.22}}>{children}</motion.div>}
 function Shell(){
   const {user,setUser,toast}=useApp(),nav=useNavigate(),[open,setOpen]=useState(false)
   if(!user)return <Navigate to="/login"/>
   const admin=user.role==='admin'
-  const items=user.role==='courier'?[['/courier','My Deliveries',Package],['/courier/earnings','Earnings',Wallet],['/tracking','Track Package',MapPin]]:admin?[['/admin/dashboard','Command Center',LayoutDashboard],['/admin/users','Users',UserCog],['/admin/couriers','Couriers',Users],['/admin/shipments','Shipments',Boxes],['/admin/pricing','Pricing',IndianRupee],['/admin/promos','Promo Codes',Tag],['/admin/support','Support Tickets',LifeBuoy],['/admin/payments','Payments',CreditCard],['/admin/analytics','Analytics',BarChart3],['/admin/ai-insights','AI Insights',Brain],['/admin/ask','Ask Your Data',Sparkles],['/admin/leaderboard','Leaderboard',Trophy],['/admin/whatif','What-if Simulation',FlaskConical],['/admin/fraud','Fraud Alerts',ShieldAlert],['/admin/reattempts','Reattempt Planner',RotateCcw],['/admin/safety','Shift and Safety',Gauge],['/admin/audit','Activity Log',ScrollText],['/admin/live','Live Ops Map',MapPin],['/tracking','Track Package',MapPin]]:[['/dashboard','Dashboard',LayoutDashboard],['/book-courier','Book Courier',Plus],['/shipments','My Shipments',Boxes],['/tracking','Track Package',MapPin],['/history','Delivery History',History],['/payments','Payments',CreditCard],['/support','Support',LifeBuoy],['/addresses','Saved Addresses',Home]]
+  const items=user.role==='courier'?[['/courier','My Deliveries',Package],['/courier/earnings','Earnings',Wallet],['/tracking','Track Package',MapPin]]:admin?[['/admin/dashboard','Command Center',LayoutDashboard],['/admin/users','Users',UserCog],['/admin/couriers','Couriers',Users],['/admin/shipments','Shipments',Boxes],['/admin/kyc','Courier Verification',BadgeCheck],['/admin/pricing','Pricing',IndianRupee],['/admin/promos','Promo Codes',Tag],['/admin/support','Support Tickets',LifeBuoy],['/admin/payments','Payments',CreditCard],['/admin/analytics','Analytics',BarChart3],['/admin/ai-insights','AI Insights',Brain],['/admin/ask','Ask Your Data',Sparkles],['/admin/leaderboard','Leaderboard',Trophy],['/admin/whatif','What-if Simulation',FlaskConical],['/admin/fraud','Fraud Alerts',ShieldAlert],['/admin/reattempts','Reattempt Planner',RotateCcw],['/admin/safety','Shift and Safety',Gauge],['/admin/audit','Activity Log',ScrollText],['/admin/live','Live Ops Map',MapPin],['/tracking','Track Package',MapPin]]:[['/dashboard','Dashboard',LayoutDashboard],['/book-courier','Book Courier',Plus],['/shipments','My Shipments',Boxes],['/tracking','Track Package',MapPin],['/history','Delivery History',History],['/payments','Payments',CreditCard],['/support','Support',LifeBuoy],['/addresses','Saved Addresses',Home]]
   const all=[...items,['/notifications','Notifications',Bell],['/profile','Profile',UserCircle],['/settings','Settings',Cog]]
   return <div className="min-h-screen md:flex">
     <button className="md:hidden fixed top-3 left-3 z-40 glass p-2" onClick={()=>setOpen(!open)} aria-label="Menu"><Menu/></button>
@@ -37,7 +40,7 @@ function Shell(){
     <aside className={`glass !rounded-none fixed md:sticky top-0 h-screen w-60 shrink-0 p-4 z-30 overflow-y-auto flex flex-col bg-[#070b17] transition-transform ${open?'':'-translate-x-full'} md:translate-x-0`}>
       <div className="gt font-black text-xl mb-8 mt-12 md:mt-0">SMART COURIER</div>
       {all.map(([to,l,I],i)=><NavLink key={to} to={to} style={{animationDelay:`${i*55}ms`}} onClick={()=>setOpen(false)} className={({isActive})=>`navin flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition ${isActive?'bg-cyan-400/15 text-cyan-300 shadow-[0_0_18px_rgba(34,211,238,.25)]':'text-white/60 hover:text-white hover:translate-x-1'}`}><I size={18}/>{l}</NavLink>)}
-      <Prefs className="mt-auto pt-4 pb-2"/><button onClick={()=>{setToken(null);setUser(null);toast('Logged out');nav('/')}} className="flex gap-3 px-3 py-2.5 text-white/60 hover:text-white"><LogOut size={18}/>Logout</button>
+      <Prefs className="mt-auto pt-4 pb-2"/><button onClick={()=>{setToken(null);setUser(null);toast('Logged out');nav('/login',{replace:true})}} className="flex gap-3 px-3 py-2.5 text-white/60 hover:text-white"><LogOut size={18}/>Logout</button>
     </aside>
     <main className="flex-1 p-5 pt-16 md:pt-6 min-w-0"><OfflineBanner/><div className="flex justify-end mb-3"><NotifBell/></div><Outlet/></main>
   </div>
@@ -45,7 +48,7 @@ function Shell(){
 export default function App(){
   const l=useLocation(),[boot,setBoot]=useState(true)
   if(boot)return <Loading onDone={()=>setBoot(false)}/>
-  return <Provider><AnimatePresence mode="wait"><Routes location={l} key={l.pathname}>
+  return <Provider><PayDialogs/><Routes>
     <Route path="/" element={<Fade><Landing/></Fade>}/>
     <Route path="/login" element={<Fade><Auth mode="login"/></Fade>}/>
     <Route path="/register" element={<Fade><Auth mode="register"/></Fade>}/>
@@ -73,6 +76,7 @@ export default function App(){
       <Route path="/admin/reattempts" element={<Fade><Reattempts/></Fade>}/>
       <Route path="/admin/safety" element={<Fade><Safety/></Fade>}/>
       <Route path="/admin/audit" element={<Fade><AuditLog/></Fade>}/>
+      <Route path="/admin/kyc" element={<Fade><Kyc/></Fade>}/>
       <Route path="/admin/ask" element={<Fade><AskData/></Fade>}/>
       <Route path="/admin/leaderboard" element={<Fade><Leaderboard/></Fade>}/>
       <Route path="/admin/payments" element={<Fade><PaymentsAdmin/></Fade>}/>
@@ -85,5 +89,5 @@ export default function App(){
       <Route path="/admin/couriers" element={<Fade><Couriers/></Fade>}/>
     </Route>
     <Route path="*" element={<Navigate to="/"/>}/>
-  </Routes></AnimatePresence></Provider>
+  </Routes></Provider>
 }

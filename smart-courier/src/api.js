@@ -4,12 +4,14 @@ let token=null
 try{token=localStorage.getItem('sc_token')}catch{}
 export const setToken=t=>{token=t;try{t?localStorage.setItem('sc_token',t):localStorage.removeItem('sc_token')}catch{};if(!t)navigator.serviceWorker?.controller?.postMessage('clear')}
 export const hasToken=()=>!!token
+export function useDebounced(v,ms=300){const [d,setD]=useState(v);useEffect(()=>{const t=setTimeout(()=>setD(v),ms);return()=>clearTimeout(t)},[v,ms]);return d}
 export const getToken=()=>token
 export const wsUrl=p=>BASE.replace(/^http/,'ws').replace(/\/api$/,'')+p
 export async function api(path,opt={}){
   let r
   try{r=await fetch(BASE+path,{method:opt.method||'GET',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:opt.body?JSON.stringify(opt.body):undefined})}
   catch{throw new Error('Cannot reach the server. Is the backend running on port 8000?')}
+  if(r.status===401&&token){setToken(null);dispatchEvent(new Event('sc-logout'))}
   if(r.status===204)return null
   const d=await r.json().catch(()=>({}))
   if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'Request failed. Please check your input.')

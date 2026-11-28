@@ -3,7 +3,7 @@ import {motion} from 'framer-motion'
 import {Search,Download,Trash2,Pencil,History,ChevronLeft,ChevronRight,Route,Clock,Users,Activity,Loader2} from 'lucide-react'
 import {useApp,Badge} from '../ui'
 import {Head,Table} from './Dash'
-import {api,useApi} from '../api'
+import {api,useApi,useDebounced} from '../api'
 import {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,CartesianGrid} from 'recharts'
 import LiveMap,{icons} from '../Map'
 const Modal=({children,onClose})=><motion.div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm grid place-items-center p-4" initial={{opacity:0}} animate={{opacity:1}} onClick={onClose}><motion.div initial={{scale:.9,y:20}} animate={{scale:1,y:0}} className="glass bg-[#0a0f1f] p-5 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>{children}</motion.div></motion.div>
@@ -11,7 +11,7 @@ const Bar=({q,setQ,children,ph})=><div className="flex flex-wrap gap-2 mb-3"><di
 const Sel=({v,set,opts})=><select className="inp !w-auto" value={v} onChange={e=>set(e.target.value)}>{opts.map(o=><option key={o} className="bg-black">{o}</option>)}</select>
 export function UsersPage(){
   const {toast}=useApp(),[q,setQ]=useState(''),[role,setRole]=useState('All'),[pg,setPg]=useState(0),[edit,setEdit]=useState(null),[view,setView]=useState(null),[hist,setHist]=useState([])
-  const {data,err,reload}=useApi(`/users?q=${encodeURIComponent(q)}&role=${role==='All'?'':role.toLowerCase()}`)
+  const dq=useDebounced(q),{data,err,reload}=useApi(`/users?q=${encodeURIComponent(dq)}&role=${role==='All'?'':role.toLowerCase()}`)
   const rows=data||[],per=5,pages=Math.max(1,Math.ceil(rows.length/per)),cur=rows.slice(pg*per,pg*per+per)
   const fail=x=>toast(x.message)
   const exp=()=>{const csv=['Name,Email,Phone,Role,Shipments',...rows.map(u=>[u.name,u.email,u.phone,u.role,u.shipments].join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='users.csv';a.click();toast(`Exported ${rows.length} users`)}
@@ -29,15 +29,15 @@ export function UsersPage(){
 }
 const flow=['Pending','Picked Up','In Transit','Out for Delivery','Delivered']
 export function Shipments(){
-  const {toast}=useApp(),[q,setQ]=useState(''),[st,setSt]=useState('All'),[ap,setAp]=useState(null)
-  const {data,err,reload}=useApi(`/shipments?q=${encodeURIComponent(q)}&status=${st==='All'?'':encodeURIComponent(st)}`)
+  const {toast}=useApp(),[q,setQ]=useState(''),[st,setSt]=useState('All'),[ap,setAp]=useState(null),[busy,setBusy]=useState(false)
+  const dq=useDebounced(q),{data,err,reload}=useApi(`/shipments?q=${encodeURIComponent(dq)}&status=${st==='All'?'':encodeURIComponent(st)}`)
   const rows=data||[]
-  const preview=()=>api('/admin/auto-assign',{method:'POST',body:{apply:false}}).then(setAp).catch(x=>toast(x.message))
-  const confirm=()=>api('/admin/auto-assign',{method:'POST',body:{apply:true}}).then(r=>{setAp(null);toast(`${r.plan.length} shipments assigned`);reload()}).catch(x=>toast(x.message))
+  const preview=()=>{setBusy(true);api('/admin/auto-assign',{method:'POST',body:{apply:false}}).then(setAp).catch(x=>toast(x.message)).finally(()=>setBusy(false))}
+  const confirm=()=>{setBusy(true);api('/admin/auto-assign',{method:'POST',body:{apply:true}}).then(r=>{setAp(null);toast(`${r.plan.length} shipments assigned`);reload()}).catch(x=>toast(x.message)).finally(()=>setBusy(false))}
   const upd=(id,status)=>api(`/shipments/${id}/status`,{method:'PATCH',body:{status}}).then(()=>{toast(`Status updated to ${status}`);reload()}).catch(x=>toast(x.message))
   return <div><Head t="SHIPMENT MANAGEMENT" sub={`${rows.length} shipments`}/>
     {err&&<p className="text-red-400 mb-3">{err}</p>}
-    <Bar q={q} setQ={setQ} ph="Search by ID or destination…"><Sel v={st} set={setSt} opts={['All',...flow,'Cancelled']}/><button className="btn" onClick={preview}>⚡ AUTO-ASSIGN COURIERS</button></Bar>
+    <Bar q={q} setQ={setQ} ph="Search by ID or destination…"><Sel v={st} set={setSt} opts={['All',...flow,'Cancelled']}/><button className="btn" disabled={busy} onClick={preview}>{busy?'ANALYSING…':'⚡ AUTO-ASSIGN COURIERS'}</button></Bar>
     {rows.length?<Table heads={['Tracking ID','Customer','Courier','Pickup','Destination','Package','Priority','Price','Status','Date','Actions']}>{rows.map(s=>{const i=flow.indexOf(s.status),end=s.status==='Delivered'||s.status==='Cancelled';return <tr key={s.id} className="border-t border-white/5"><td className="p-3 text-cyan-300">{s.tracking_id}</td><td className="p-3">{s.customer}</td><td className="p-3">{s.courier||'Unassigned'}</td><td className="p-3">{s.pickup}</td><td className="p-3">{s.destination}</td><td className="p-3">{s.package}</td><td className="p-3"><Badge s={s.priority}/></td><td className="p-3">₹{s.price}</td><td className="p-3"><Badge s={s.status}/></td><td className="p-3">{s.created_at.slice(0,10)}</td>
       <td className="p-3 space-x-3">{!end&&<><button className="text-cyan-300" onClick={()=>upd(s.id,flow[i+1])}>ADVANCE</button><button className="text-red-400" onClick={()=>upd(s.id,'Cancelled')}>CANCEL</button></>}</td></tr>})}</Table>
     :<div className="glass p-10 text-center text-white/60">No shipments match your filters.</div>}
@@ -46,7 +46,7 @@ export function Shipments(){
       {ap.plan.map(p=><div key={p.shipment_id} className="flex justify-between gap-2 py-2 border-t border-white/10 text-sm"><span>{p.tracking_id} <Badge s={p.priority}/><br/><span className="text-white/50 text-xs">{p.pickup} → {p.destination}</span></span><span className="text-right text-cyan-300">{p.courier}<br/><span className="text-white/50 text-xs">{p.distance_km} km away · load {p.load_after}</span></span></div>)}
       {!ap.plan.length&&<p className="text-white/60 text-sm">No waiting shipments need a courier right now.</p>}
       {ap.unassigned.map(x=><p key={x.tracking_id} className="text-amber-300 text-xs mt-2">{x.tracking_id}: {x.reason}</p>)}
-      <div className="flex justify-end gap-2 mt-4"><button className="btn2" onClick={()=>setAp(null)}>CANCEL</button>{ap.plan.length>0&&<button className="btn" onClick={confirm}>ASSIGN {ap.plan.length}</button>}</div></Modal>}
+      <div className="flex justify-end gap-2 mt-4"><button className="btn2" onClick={()=>setAp(null)}>CANCEL</button>{ap.plan.length>0&&<button className="btn" disabled={busy} onClick={confirm}>{busy?'ASSIGNING…':`ASSIGN ${ap.plan.length}`}</button>}</div></Modal>}
   </div>
 }
 const nodes=[...Array(8)].map((_,i)=>[200+Math.cos(i*Math.PI/4)*110,150+Math.sin(i*Math.PI/4)*110])
@@ -70,7 +70,7 @@ export function AiInsights(){
 
 export function LiveOps(){
   const c=useApi('/couriers'),s=useApi('/shipments')
-  useEffect(()=>{const t=setInterval(()=>{c.reload();s.reload()},5000);return()=>clearInterval(t)},[])
+  useEffect(()=>{const t=setInterval(()=>{c.reload();s.reload()},8000);return()=>clearInterval(t)},[])
   const ok=p=>p&&p[0]!=null
   const mk=[...(c.data||[]).filter(x=>x.lat!=null).map(x=>({pos:[x.lat,x.lng],icon:icons.courier,label:`${x.name} · ${x.status}`,smooth:true})),...(s.data||[]).filter(x=>ok(x.dest_pos)&&!['Delivered','Cancelled'].includes(x.status)).map(x=>({pos:x.dest_pos,icon:icons.dest,label:`${x.tracking_id} → ${x.destination}`}))]
   return <div><Head t="LIVE OPERATIONS MAP" sub={`${mk.length} live markers · refreshing every 5 seconds`}/><LiveMap markers={mk} h={520}/></div>

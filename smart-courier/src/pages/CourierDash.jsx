@@ -4,6 +4,7 @@ import {api,useApi} from '../api'
 import {useApp,Badge} from '../ui'
 import {Head,Table} from './Dash'
 import LiveMap,{icons,route} from '../Map'
+import {KycBanner} from './KycForm'
 const NEXT={Pending:'Picked Up','Picked Up':'In Transit','In Transit':'Out for Delivery','Out for Delivery':'Delivered'}
 const ok=p=>p&&p[0]!=null
 const RANK={Highest:0,High:1,Normal:2,Low:3,Lowest:4}
@@ -51,7 +52,7 @@ export default function CourierDash(){
   const mk2=plan?[...mk.filter(m=>m.label==='You (live)'),...plan.list.map((s,i)=>({pos:s.dest_pos,icon:icons.dest,label:`Stop ${i+1} · ${s.destination}`}))]:mk
   return <div><Head t="MY DELIVERIES" sub={mode==='off'?'LOCATION SHARING OFF':mode==='gps'?'SHARING LIVE GPS':'DEMO DRIVE RUNNING'}/>
     {err&&<p className="text-red-400 mb-3">{err}</p>}
-    <div className="flex flex-wrap gap-2 mb-4"><input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto}/><button className="btn" onClick={()=>setMode('gps')}><Navigation size={16}/>SHARE LIVE GPS</button><button className="btn2" onClick={optimize}><RouteIcon size={16}/>OPTIMIZE ROUTE</button><button className="btn2" onClick={()=>setMode('demo')}><Play size={16}/>DEMO DRIVE</button>{mode!=='off'&&<button className="btn2" onClick={()=>setMode('off')}><Square size={16}/>STOP</button>}</div>
+    <KycBanner/><div className="flex flex-wrap gap-2 mb-4"><input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onPhoto}/><button className="btn" onClick={()=>setMode('gps')}><Navigation size={16}/>SHARE LIVE GPS</button><button className="btn2" onClick={optimize}><RouteIcon size={16}/>OPTIMIZE ROUTE</button><button className="btn2" onClick={()=>setMode('demo')}><Play size={16}/>DEMO DRIVE</button>{mode!=='off'&&<button className="btn2" onClick={()=>setMode('off')}><Square size={16}/>STOP</button>}</div>
     {plan&&<div className="glass p-3 mb-4 text-sm"><b className="gt">OPTIMIZED ROUTE</b> · {plan.before_km} km → <b className="text-emerald-300">{plan.after_km} km</b> ({plan.saved_pct}% shorter)<div className="text-white/70 mt-1">{plan.list.map((s,i)=>`${i+1}. ${s.destination}`).join('  →  ')}</div></div>}
     {mk2.length>0&&<div className="mb-4"><LiveMap markers={mk2} line={plan?plan.line:line} h={320}/></div>}
     {active.length?<Table heads={['Tracking ID','Route','Distance','Status','Action']}>{active.map(s=><tr key={s.id} onClick={()=>setSel(s.id)} className={`border-t border-white/5 cursor-pointer ${cur?.id===s.id?'bg-cyan-400/10':''}`}><td className="p-3 text-cyan-300">{s.tracking_id} <Badge s={s.priority}/></td><td className="p-3">{s.pickup} → {s.destination}</td><td className="p-3">{s.distance_km?s.distance_km.toFixed(1)+' km':'–'}</td><td className="p-3"><Badge s={s.status}/></td><td className="p-3">{NEXT[s.status]&&<button className="text-cyan-300" onClick={e=>{e.stopPropagation();adv(s)}}>MARK {NEXT[s.status].toUpperCase()}</button>}{s.status==='Out for Delivery'&&<button className="text-red-400 ml-3" onClick={e=>{e.stopPropagation();fail(s)}}>FAILED</button>}</td></tr>)}</Table>

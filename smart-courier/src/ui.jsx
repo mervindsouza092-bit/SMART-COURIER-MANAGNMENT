@@ -4,7 +4,7 @@ import {CheckCircle2,Sparkles,X,Send} from 'lucide-react'
 import {api,setToken,hasToken} from './api'
 export const Ctx=createContext()
 export const useApp=()=>useContext(Ctx)
-const tone={'In Transit':'cyan','Out for Delivery':'violet','Picked Up':'blue','Delivered':'green',Pending:'amber',Cancelled:'red',Online:'cyan',Available:'green','On Delivery':'violet',Offline:'gray',Paid:'green',Unpaid:'amber',COD:'blue',Highest:'red',High:'amber',Normal:'blue',Low:'gray',Lowest:'gray',Open:'amber',Answered:'green',Closed:'gray',Failed:'red'}
+const tone={'In Transit':'cyan','Out for Delivery':'violet','Picked Up':'blue','Delivered':'green',Pending:'amber',Cancelled:'red',Online:'cyan',Available:'green','On Delivery':'violet',Offline:'gray',Paid:'green',Unpaid:'amber',COD:'blue',Highest:'red',High:'amber',Normal:'blue',Low:'gray',Lowest:'gray',Open:'amber',Answered:'green',Closed:'gray',Failed:'red',Approved:'green',Rejected:'red'}
 const tc={cyan:'bg-cyan-400/15 text-cyan-300',violet:'bg-violet-400/15 text-violet-300',blue:'bg-blue-400/15 text-blue-300',green:'bg-emerald-400/15 text-emerald-300',amber:'bg-amber-400/15 text-amber-300',red:'bg-red-400/15 text-red-300',gray:'bg-white/10 text-white/50'}
 export const Badge=({s})=><span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${tc[tone[s]]}`}><motion.i className="w-1.5 h-1.5 rounded-full bg-current" animate={{opacity:[1,.3,1]}} transition={{repeat:Infinity,duration:1.5}}/>{s}</span>
 export function Counter({to,prefix=''}){
@@ -35,6 +35,7 @@ function Orb(){
 export function Provider({children}){
   const [user,setUser]=useState(null),[ts,setT]=useState([]),[ready,setReady]=useState(!hasToken())
   useEffect(()=>{if(hasToken())api('/auth/me').then(setUser).catch(()=>setToken(null)).finally(()=>setReady(true))},[])
+  useEffect(()=>{const f=()=>setUser(null);addEventListener('sc-logout',f);return()=>removeEventListener('sc-logout',f)},[])  // expired or revoked session: back to the login page
   const toast=m=>{const id=Math.random();setT(t=>[...t,{id,m}]);setTimeout(()=>setT(t=>t.filter(x=>x.id!==id)),3500)}
   return <Ctx.Provider value={{user,setUser,toast}}>{ready?children:null}
     <div className="fixed top-4 right-4 z-[60] space-y-2"><AnimatePresence>{ts.map(t=><motion.div key={t.id} layout initial={{x:80,opacity:0}} animate={{x:0,opacity:1}} exit={{x:80,opacity:0}} className="glass px-4 py-3 flex gap-2 items-center bg-[#0a0f1f]/90 shadow-[0_0_20px_rgba(34,211,238,.3)]"><CheckCircle2 size={16} className="text-cyan-300"/>{t.m}</motion.div>)}</AnimatePresence></div>

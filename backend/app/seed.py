@@ -1,4 +1,4 @@
-import math
+import math, os, secrets
 from sqlalchemy import select
 from .db import Courier, Shipment, User
 
@@ -11,6 +11,11 @@ def road_km(a, b):
 
 def seed(db, hash_pw):
     if db.scalar(select(User)): return
+    if os.getenv("ENV") == "production" and not os.getenv("SEED_DEMO"):  # a live site must not ship with well-known demo passwords
+        pw = os.getenv("ADMIN_PASSWORD") or secrets.token_urlsafe(12)
+        db.add(User(name="Admin", email=os.getenv("ADMIN_EMAIL", "admin@smartcourier.com").lower(), role="admin", password_hash=hash_pw(pw), email_verified=True)); db.commit()
+        if not os.getenv("ADMIN_PASSWORD"): print("[seed] First admin created. Password (shown once):", pw)
+        return
     mk = lambda n, e, r, p="": User(name=n, email=e, phone=p, role=r, password_hash=hash_pw("admin123" if r == "admin" else "password123"))
     admin = mk("Admin", "admin@smartcourier.com", "admin")
     custs = [mk("Aarav Patil", "aarav@mail.com", "user", "98765 11111"), mk("Priya Shah", "priya@mail.com", "user", "98765 22222"), mk("Rohan Mehta", "rohan@mail.com", "user", "98765 33333")]

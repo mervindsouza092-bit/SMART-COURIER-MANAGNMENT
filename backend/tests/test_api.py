@@ -2,11 +2,13 @@
 Uses a temporary SQLite database, so your real data is never touched."""
 import os, tempfile
 os.environ["DATABASE_URL"] = f"sqlite:///{tempfile.mkdtemp()}/test.db"
-os.environ.pop("ANTHROPIC_API_KEY", None)
+os.environ.pop("ANTHROPIC_API_KEY", None); os.environ.pop("ENV", None); os.environ.pop("SMTP_HOST", None)
+os.environ["RL_AUTH"] = "100000"; os.environ["RL_API"] = "100000"  # the rate limiter has its own test below
 from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.validators import verhoeff_check_digit
 
 ADMIN, AARAV, PRIYA, RAVI = ("admin@smartcourier.com", "admin123"), ("aarav@mail.com", "password123"), ("priya@mail.com", "password123"), ("ravi@mail.com", "password123")
 BOOK = {"pickup": "Virar West", "destination": "Andheri East", "package": "Documents", "weight": 1, "plat": 19.4559, "plng": 72.8113, "dlat": 19.1136, "dlng": 72.8697,
@@ -106,3 +108,64 @@ def test_failed_delivery_can_be_rescheduled(c):
 def test_ask_your_data_works_without_a_key(c):
     r = c.post("/api/admin/ask", json={"question": "Which area had the most cancelled deliveries?"}, headers=auth(c, ADMIN))
     assert r.status_code == 200 and r.json()["engine"] == "rules"
+
+
+PNG = "data:image/png;base64,iVBORw0KGgo="
+AADHAAR = "23456789012" + verhoeff_check_digit("23456789012")
+
+def new_user(c, email, role="user", phone="", kyc=None, pw="Strong1234"):
+    r = c.post("/api/auth/register", json={"name": "Test Person", "email": email, "phone": phone, "password": pw, "role": role, "kyc": kyc}); return r
+
+KYC = {"vehicle_type": "Bike", "vehicle_no": "MH04AB1234", "licence_no": "MH0420110012345", "id_type": "Aadhaar", "id_no": AADHAAR, "address": "Flat 5, Sai Nagar, Virar West", "id_doc": PNG, "addr_doc": PNG}
+
+def test_signup_needs_email_code_and_strong_password(c):
+    assert new_user(c, "weak@test.com", pw="weakpass").status_code == 400
+    r = new_user(c, "fresh@test.com"); assert r.status_code == 201 and r.json()["dev"]["email"]
+    code = r.json()["dev"]["email"]
+    assert c.post("/api/auth/login", json={"email": "fresh@test.com", "password": "Strong1234"}).json()["detail"] == "NOT_VERIFIED:email"
+    assert c.post("/api/auth/verify", json={"email": "fresh@test.com", "channel": "email", "code": "000000" if code != "000000" else "111111"}).status_code == 400
+    ok = c.post("/api/auth/verify", json={"email": "fresh@test.com", "channel": "email", "code": code}).json(); assert ok["done"] and ok["token"]
+    assert c.post("/api/auth/verify", json={"email": "fresh@test.com", "channel": "email", "code": code}).status_code == 400  # a code works only once
+    assert c.get("/api/auth/me", headers={"Authorization": "Bearer " + ok["token"]}).status_code == 200
+
+def test_changing_password_signs_out_old_sessions(c):
+    r = new_user(c, "pw@test.com"); tok = c.post("/api/auth/verify", json={"email": "pw@test.com", "channel": "email", "code": r.json()["dev"]["email"]}).json()["token"]
+    old = {"Authorization": "Bearer " + tok}
+    new = c.post("/api/auth/change-password", json={"current": "Strong1234", "new": "Better5678"}, headers=old).json()["token"]
+    assert c.get("/api/auth/me", headers=old).status_code == 401
+    assert c.get("/api/auth/me", headers={"Authorization": "Bearer " + new}).status_code == 200
+
+def test_courier_needs_both_codes_and_admin_approval(c):
+    r = new_user(c, "rider@test.com", role="courier", phone="9876500001", kyc=KYC); assert r.status_code == 201, r.text
+    dev = r.json()["dev"]
+    first = c.post("/api/auth/verify", json={"email": "rider@test.com", "channel": "email", "code": dev["email"]}).json(); assert first["done"] is False
+    done = c.post("/api/auth/verify", json={"email": "rider@test.com", "channel": "phone", "code": dev["phone"]}).json(); assert done["done"] is True
+    admin = auth(c, ADMIN); cid = courier_id(c, "Test Person"); s = book(c)
+    assert c.patch(f"/api/shipments/{s['id']}/assign", json={"courier_id": cid}, headers=admin).status_code == 400  # not verified yet
+    assert any(k["courier_id"] == cid and k["id_masked"].endswith(AADHAAR[-4:]) and AADHAAR not in str(k) for k in c.get("/api/admin/kyc", headers=admin).json())
+    assert c.get(f"/api/admin/kyc/{cid}/doc/id", headers=admin).json()["image"] == PNG
+    assert c.post(f"/api/admin/kyc/{cid}/decision", json={"approve": False}, headers=admin).status_code == 400  # a reason is required
+    assert c.post(f"/api/admin/kyc/{cid}/decision", json={"approve": True}, headers=admin).status_code == 200
+    assert c.patch(f"/api/shipments/{s['id']}/assign", json={"courier_id": cid}, headers=admin).status_code == 200
+
+def test_same_id_cannot_be_used_twice_and_bad_ids_are_rejected(c):
+    assert new_user(c, "rider2@test.com", role="courier", phone="9876500002", kyc=KYC).status_code == 409
+    assert new_user(c, "rider3@test.com", role="courier", phone="9876500003", kyc={**KYC, "id_no": "123456789012"}).status_code == 400  # fails the Aadhaar checksum
+    assert new_user(c, "rider4@test.com", role="courier", phone="9876500004", kyc={**KYC, "id_doc": "data:text/html;base64,PHA+"}).status_code == 400
+
+def test_label_scan_falls_back_without_a_key(c):
+    assert c.post("/api/ocr/label", json={"image": PNG}, headers=auth(c, AARAV)).json()["engine"] == "none"
+
+def test_security_headers_and_websocket_tickets(c):
+    r = c.get("/api/auth/me"); assert r.headers["x-content-type-options"] == "nosniff" and r.headers["x-frame-options"] == "DENY" and r.headers["cache-control"] == "no-store"
+    ticket = c.post("/api/ws-ticket", headers=auth(c, AARAV)).json()["ticket"]
+    assert c.get("/api/auth/me", headers={"Authorization": "Bearer " + ticket}).status_code == 401  # a ticket cannot be used as a login token
+
+def test_rate_limit_blocks_floods(c, monkeypatch):
+    monkeypatch.setenv("RL_AUTH", "3")
+    codes = [c.post("/api/auth/login", json={"email": f"flood{i}@test.com", "password": "x"}, headers={"X-Forwarded-For": "9.9.9.9"}).status_code for i in range(5)]
+    assert codes[:3] == [401, 401, 401] and codes[3] == 429
+
+def test_payment_methods_are_limited(c):
+    assert c.post("/api/shipments", json={**BOOK, "payment_method": "Card"}, headers=auth(c, AARAV)).status_code == 400
+    assert c.post("/api/shipments", json={**BOOK, "payment_method": "Net Banking"}, headers=auth(c, AARAV)).status_code == 201

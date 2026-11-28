@@ -16,10 +16,14 @@ export default function Tracking(){
   useEffect(()=>{if(!s)return;const t=setInterval(()=>api('/track/'+s.tracking_id).then(setS).catch(()=>{}),10000);return()=>clearInterval(t)},[s?.tracking_id])
   useEffect(()=>{
     if(!s||!s.courier_pos||['Delivered','Cancelled','Failed'].includes(s.status))return
-    let ws;try{ws=new WebSocket(wsUrl('/ws/track/'+s.tracking_id+'?token='+getToken()))}catch{return}
-    ws.onopen=()=>setLive(true);ws.onclose=()=>setLive(false)
-    ws.onmessage=e=>{const p=JSON.parse(e.data);setS(v=>v?{...v,courier_pos:[p.lat,p.lng]}:v)}
-    return()=>ws.close()
+    let ws,dead=false
+    api('/ws-ticket',{method:'POST'}).then(r=>{
+      if(dead)return
+      ws=new WebSocket(wsUrl('/ws/track/'+s.tracking_id+'?token='+r.ticket))
+      ws.onopen=()=>setLive(true);ws.onclose=()=>setLive(false)
+      ws.onmessage=e=>{const p=JSON.parse(e.data);setS(v=>v?{...v,courier_pos:[p.lat,p.lng]}:v)}
+    }).catch(()=>{})
+    return()=>{dead=true;if(ws)ws.close()}
   },[s?.tracking_id,!!s?.courier_pos])
   useEffect(()=>{if(s&&ok(s.pickup_pos)&&ok(s.dest_pos))route(s.pickup_pos,s.dest_pos).then(r=>setLine(r?r.pts:[s.pickup_pos,s.dest_pos]))},[s?.tracking_id])
   const i=s?stageOf[s.status]??0:0

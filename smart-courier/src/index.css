@@ -1,10 +1,10 @@
 @tailwind base;@tailwind components;@tailwind utilities;
-body{@apply bg-[#05070f] text-white antialiased;background-image:linear-gradient(rgba(56,189,248,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.06) 1px,transparent 1px);background-size:44px 44px;animation:gridmove 30s linear infinite}
-.glass{@apply bg-white/5 backdrop-blur-xl border border-cyan-400/20 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,.08)]}
+body{@apply bg-[#05070f] text-white antialiased;background-image:linear-gradient(rgba(56,189,248,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.06) 1px,transparent 1px);background-size:44px 44px}
+.glass{@apply bg-white/5 backdrop-blur-md border border-cyan-400/20 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,.08)]}
 .btn{@apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold tracking-wide bg-gradient-to-r from-blue-500 to-cyan-400 text-black transition hover:shadow-[0_0_25px_rgba(34,211,238,.6)] hover:-translate-y-0.5 active:scale-95}
 .btn2{@apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold tracking-wide border border-cyan-400/40 text-cyan-200 transition hover:bg-cyan-400/10 hover:-translate-y-0.5 active:scale-95}
 .inp{@apply w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 outline-none transition hover:border-cyan-400/40 focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(34,211,238,.4)]}
-.gt{background-image:linear-gradient(90deg,#67e8f9,#60a5fa,#a78bfa,#67e8f9);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gtmove 8s linear infinite}
+.gt{background-image:linear-gradient(90deg,#67e8f9,#60a5fa,#a78bfa,#67e8f9);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
 .leaflet-container{background:#dfe7ef;border-radius:14px;font:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#fff;color:#111827}
 .btn:disabled,.btn2:disabled{opacity:.5;pointer-events:none}
 /* ---- animations ---- */
@@ -15,9 +15,9 @@ body{@apply bg-[#05070f] text-white antialiased;background-image:linear-gradient
 @keyframes rowin{from{opacity:0;transform:translateY(10px)}}
 @keyframes navin{from{opacity:0;transform:translateX(-16px)}}
 @keyframes pop{from{opacity:0;transform:scale(.94) translateY(10px)}}
-body::before,body::after{content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(100px);opacity:.16}
-body::before{width:34rem;height:34rem;left:-8rem;top:-8rem;background:#22d3ee;animation:orb1 18s ease-in-out infinite alternate}
-body::after{width:30rem;height:30rem;right:-8rem;bottom:-8rem;background:#8b5cf6;animation:orb2 22s ease-in-out infinite alternate}
+body::before,body::after{content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;will-change:transform}
+body::before{width:40rem;height:40rem;left:-10rem;top:-10rem;background:radial-gradient(circle,rgba(34,211,238,.22),transparent 68%);animation:orb1 24s ease-in-out infinite alternate}
+body::after{width:36rem;height:36rem;right:-10rem;bottom:-10rem;background:radial-gradient(circle,rgba(139,92,246,.22),transparent 68%);animation:orb2 28s ease-in-out infinite alternate}
 .btn{position:relative;overflow:hidden}
 .btn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);transition:left .6s}
 .btn:hover::after{left:130%}

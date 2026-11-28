@@ -7,7 +7,7 @@ export default function Reset(){
   const [pw,setPw]=useState(''),[pw2,setPw2]=useState(''),[err,setErr]=useState(''),[done,setDone]=useState(false)
   const go=async e=>{e.preventDefault();setErr('')
     if(!token)return setErr('This link is missing its reset code. Request a new one.')
-    if(pw.length<6)return setErr('Password must be at least 6 characters.')
+    if(!(pw.length>=8&&/[A-Z]/.test(pw)&&/[a-z]/.test(pw)&&/\d/.test(pw)))return setErr('Use 8+ characters with an uppercase letter, a lowercase letter and a number.')
     if(pw!==pw2)return setErr('Passwords do not match.')
     try{await api('/auth/reset',{method:'POST',body:{token,password:pw}});setDone(true);setTimeout(()=>nav('/login'),1800)}catch(x){setErr(x.message)}}
   return <div className="min-h-screen grid place-items-center p-5"><motion.form onSubmit={go} initial={{opacity:0,scale:.95}} animate={{opacity:1,scale:1}} className="glass p-7 w-full max-w-md space-y-3">

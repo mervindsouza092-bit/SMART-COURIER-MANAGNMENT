@@ -25,6 +25,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(10), default="user")  # user | courier | admin
     notify_email: Mapped[bool] = mapped_column(Boolean, default=True)
     notify_sms: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_verified: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # NULL = old account, treated as verified
+    phone_verified: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
 class Courier(Base):
     __tablename__ = "couriers"
@@ -70,6 +72,8 @@ class Shipment(Base):
     is_return: Mapped[bool | None] = mapped_column(Boolean, default=False, nullable=True)
     return_of: Mapped[int | None] = mapped_column(Integer, nullable=True)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    recv_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    recv_phone: Mapped[str | None] = mapped_column(String(15), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="Pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
@@ -153,3 +157,30 @@ class AuditLog(Base):
     actor: Mapped[str] = mapped_column(String(80))
     action: Mapped[str] = mapped_column(String(200))
     detail: Mapped[str] = mapped_column(String(300), default="")
+
+class OtpCode(Base):
+    __tablename__ = "otp_codes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    channel: Mapped[str] = mapped_column(String(8))  # email | phone
+    code_hash: Mapped[str] = mapped_column(String(64))  # the code itself is never stored
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+class CourierKyc(Base):
+    __tablename__ = "courier_kyc"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    courier_id: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    vehicle_no: Mapped[str] = mapped_column(String(15))
+    licence_masked: Mapped[str] = mapped_column(String(20))
+    licence_hash: Mapped[str] = mapped_column(String(64))
+    id_type: Mapped[str] = mapped_column(String(16))
+    id_masked: Mapped[str] = mapped_column(String(20))  # only the last 4 characters are kept readable
+    id_hash: Mapped[str] = mapped_column(String(64), index=True)  # lets us spot the same ID used twice without storing it
+    address_text: Mapped[str] = mapped_column(String(300))
+    id_doc: Mapped[str | None] = mapped_column(Text, deferred=True)  # encrypted photo
+    addr_doc: Mapped[str | None] = mapped_column(Text, deferred=True)
+    status: Mapped[str] = mapped_column(String(10), default="Pending")  # Pending | Approved | Rejected
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

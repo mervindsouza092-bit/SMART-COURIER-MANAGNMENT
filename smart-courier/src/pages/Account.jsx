@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {motion} from 'framer-motion'
-import {api} from '../api'
+import {api,setToken} from '../api'
 import {useApp} from '../ui'
 import {Head} from './Dash'
 import {Prefs} from '../Prefs'
@@ -19,7 +19,7 @@ export function Settings(){
   const {user,setUser,toast}=useApp(),[p,setP]=useState(load),[pw,setPw]=useState({current:'',next:''})
   const set=k=>v=>{const n={...p,[k]:v};setP(n);try{localStorage.setItem(KEY,JSON.stringify(n))}catch{}}
   const save=b=>api('/auth/me',{method:'PATCH',body:b}).then(u=>{setUser(u);toast('Preference saved')}).catch(x=>toast(x.message))
-  const change=()=>api('/auth/change-password',{method:'POST',body:{current:pw.current,new:pw.next}}).then(()=>{toast('Password changed');setPw({current:'',next:''})}).catch(x=>toast(x.message))
+  const change=()=>api('/auth/change-password',{method:'POST',body:{current:pw.current,new:pw.next}}).then(r=>{setToken(r.token);toast('Password changed');setPw({current:'',next:''})}).catch(x=>toast(x.message))
   return <div className="max-w-xl mx-auto space-y-4"><Head t="SETTINGS" sub="PREFERENCES SAVED ON THIS DEVICE"/>
     <div className="glass p-5"><div className="font-bold mb-3">Appearance and language</div><Prefs/><p className="text-xs text-white/40 mt-3">Hindi and Marathi translate the main screens. Some messages stay in English.</p></div>
     <div className="glass p-5"><div className="font-bold mb-2">Notifications</div>
@@ -28,6 +28,6 @@ export function Settings(){
       <Sw on={!!user.notify_sms} set={v=>save({notify_sms:v})} label="SMS alerts" sub="Needs a phone number in your profile"/></div>
     <div className="glass p-5 space-y-2"><div className="font-bold mb-1">Security · change password</div>
       <input className="inp" type="password" placeholder="Current password" value={pw.current} onChange={e=>setPw({...pw,current:e.target.value})}/>
-      <input className="inp" type="password" placeholder="New password (6+ characters)" value={pw.next} onChange={e=>setPw({...pw,next:e.target.value})}/>
+      <input className="inp" type="password" placeholder="New password (8+ characters, upper, lower, number)" value={pw.next} onChange={e=>setPw({...pw,next:e.target.value})}/>
       <button className="btn" onClick={change}>UPDATE PASSWORD</button></div></div>
 }
